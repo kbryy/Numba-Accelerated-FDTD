@@ -28,7 +28,7 @@ For examples of how to use the FDTD module, please see the `examples` folder.
 
 ## Microwave Oven Simulation(example)
 
-<img src="https://github.com/kbryy/Numba-Accelerated-FDTD/tree/main/out/mirowave_oven.gif" alt="example GIF">
+<img src="https://github.com/kbryy/Numba-Accelerated-FDTD/blob/main/out/mirowave_oven.gif" alt="example GIF">
 
 ## Contributing
 
