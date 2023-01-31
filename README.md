@@ -6,23 +6,23 @@ This repository contains a fast, parallel FDTD simulation module that uses Numba
 
 - Numpy
 - Numba
-- Tqdm
+- Matplotlib
 
 ## Installation
 
 To install the dependencies, run the following command:
 
-'''
+```
 pip install -r requirements.txt
-'''
+```
 
 ## Usage
 
 To use the FDTD module, simply import it in your Python script as follows:
 
-'''
+```
 import FDTD
-'''
+```
 
 For examples of how to use the FDTD module, please see the `examples` folder.
 
