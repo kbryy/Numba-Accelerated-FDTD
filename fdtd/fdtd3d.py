@@ -28,112 +28,92 @@ class FDTD3d(Grid):
 
     @staticmethod
     @njit(parallel=True)
-    def calculate_dx_field(dx,hy,hz):
-        x,y,z = dx.shape
-        for i in prange(1, x):
-            for j in prange(1, y):
-                for k in prange(1, z):
-                    dx[i, j, k] = dx[i, j, k] + 0.5 * (hz[i, j, k] - hz[i, j - 1, k] - hy[i, j, k] + hy[i, j, k - 1])
-        return dx
-
-
-    @staticmethod
-    @njit(parallel=True)
-    def calculate_dy_field(dy,hx,hz):
-        x,y,z = dy.shape
-        for i in prange(1, x):
-            for j in prange(1, y):
-                for k in prange(1, z):
-                    dy[i, j, k] = dy[i, j, k] + 0.5 * (hx[i, j, k] - hx[i, j, k - 1] - hz[i, j, k] + hz[i - 1, j, k])
-        return dy
-
-
-    @staticmethod
-    @njit(parallel=True)
-    def calculate_dz_field(dz,hx,hy):
-        x,y,z = dz.shape
-        for i in prange(1, x):
-            for j in prange(1, y):
-                for k in prange(1, z):
-                    dz[i, j, k] = dz[i, j, k] + 0.5 * (hy[i, j, k] - hy[i - 1, j, k] - hx[i, j, k] + hx[i, j - 1, k])
-        return dz
-
-
-    @staticmethod
-    @njit(parallel=True)
-    def calculate_dx_field_pml(dx,hy,hz,idx,pdx1,pdy2,pdy3,pdz2,pdz3):
-        x,y,z = dx.shape
-        for i in prange(1, x):
-            for j in prange(1, y):
-                for k in prange(1, z):
-                    idx[i, j, k] = idx[i, j, k] + (hz[i, j, k] - hz[i, j - 1, k] - hy[i, j, k] + hy[i, j, k - 1])
-                    dx[i, j, k] = pdy3[j] * pdz3[k] * dx[i, j, k] \
-                        + pdy2[j] * pdz2[k] * (0.5 * (hz[i, j, k] - hz[i, j - 1, k] - hy[i, j, k] + hy[i, j, k - 1]) + pdx1[i] * idx[i, j, k])
-        return dx, idx
-
-
-    @staticmethod
-    @njit(parallel=True)
-    def calculate_dy_field_pml(dy,hx,hz,idy,pdx2,pdx3,pdy1,pdz2,pdz3):
-        x,y,z = dy.shape
-        for i in prange(1, x):
-            for j in prange(1, y):
-                for k in prange(1, z):
-                    idy[i, j, k] = idy[i, j, k] + (hx[i, j, k] - hx[i, j, k - 1] - hz[i, j, k] + hz[i - 1, j, k])
-                    dy[i, j, k] = pdx3[i] * pdz3[k] * dy[i, j, k] \
-                        + pdx2[i] * pdz2[k] * (0.5 * (hx[i, j, k] - hx[i, j, k - 1] - hz[i, j, k] + hz[i - 1, j, k]) + pdy1[j] * idy[i, j, k])
-        return dy, idy
-
-
-    @staticmethod
-    @njit(parallel=True)
-    def calculate_dz_field_pml(dz,hx,hy,idz,pdx2,pdx3,pdy2,pdy3,pdz1):
-        x,y,z = dz.shape
-        for i in prange(1, x):
-            for j in prange(1, y):
-                for k in prange(1, z):
-                    idz[i, j, k] = idz[i, j, k] + (hy[i, j, k] - hy[i - 1, j, k] - hx[i, j, k] + hx[i, j - 1, k])
-                    dz[i, j, k] = pdx3[i] * pdy3[j] * dz[i, j, k] \
-                        + pdx2[i] * pdy2[j] * (0.5 * (hy[i, j, k] - hy[i - 1, j, k] - hx[i, j, k] + hx[i, j - 1, k]) + pdz1[k] * idz[i, j, k])
-        return dz, idz
-
-
-    @staticmethod
-    @njit(parallel=True)
-    def calculate_ex_field(ex,ix,dx,cex,cexl,media):
+    def calculate_ex_field(ex,hy,hz,ix,cex,cexl,media):
         x,y,z = ex.shape
-        for i in prange(0, x):
-            for j in prange(0, y):
-                for k in prange(0, z):
+        for i in prange(1, x):
+            for j in prange(1, y):
+                for k in prange(1, z):
+                    curl_e = ex[i, j, k] + 0.5 * (hz[i, j, k] - hz[i, j - 1, k] - hy[i, j, k] + hy[i, j, k - 1])
                     idx = media[i,j,k]
-                    ex[i, j, k] = cex[idx] * (dx[i, j, k] - ix[i, j, k])
+                    ex[i, j, k] = cex[idx] * (curl_e - ix[i, j, k])
                     ix[i, j, k] = ix[i, j, k] + cexl[idx] * ex[i, j, k]
-        return ex,ix
+        return ex, ix
+
 
     @staticmethod
     @njit(parallel=True)
-    def calculate_ey_field(ey,iy,dy,cey,ceyl,media):
+    def calculate_ey_field(ey,hx,hz,iy,cey,ceyl,media):
         x,y,z = ey.shape
-        for i in prange(0, x):
-            for j in prange(0, y):
-                for k in prange(0, z):
-                    idx = media[i,j,k]
-                    ey[i, j, k] = cey[idx] * (dy[i, j, k] - iy[i, j, k])
+        for i in prange(1, x):
+            for j in prange(1, y):
+                for k in prange(1, z):
+                    curl_e      = ey[i, j, k] + 0.5 * (hx[i, j, k] - hx[i, j, k - 1] - hz[i, j, k] + hz[i - 1, j, k])
+                    idx         = media[i,j,k]
+                    ey[i, j, k] = cey[idx] * (curl_e - iy[i, j, k])
                     iy[i, j, k] = iy[i, j, k] + ceyl[idx] * ey[i, j, k]
-        return ey,iy
+        return ey, iy
+
 
     @staticmethod
     @njit(parallel=True)
-    def calculate_ez_field(ez,iz,dz,cez,cezl,media):
+    def calculate_ez_field(ez,hx,hy,iz,cez,cezl,media):
         x,y,z = ez.shape
-        for i in prange(0, x):
-            for j in prange(0, y):
-                for k in prange(0, z):
+        for i in prange(1, x):
+            for j in prange(1, y):
+                for k in prange(1, z):
+                    curl_e = ez[i, j, k] + 0.5 * (hy[i, j, k] - hy[i - 1, j, k] - hx[i, j, k] + hx[i, j - 1, k])
                     idx = media[i,j,k]
-                    ez[i, j, k] = cez[idx] * (dz[i, j, k] - iz[i, j, k])
+                    ez[i, j, k] = cez[idx] * (curl_e - iz[i, j, k])
                     iz[i, j, k] = iz[i, j, k] + cezl[idx] * ez[i, j, k]
+        return ez, iz
 
-        return ez,iz
+
+    @staticmethod
+    @njit(parallel=True)
+    def calculate_ex_field_pml(ex,hy,hz,ix,cex,cexl,media,iex,pdx1,pdy2,pdy3,pdz2,pdz3):
+        x,y,z = ex.shape
+        for i in prange(1, x):
+            for j in prange(1, y):
+                for k in prange(1, z):
+                    iex[i, j, k] = iex[i, j, k] + (hz[i, j, k] - hz[i, j - 1, k] - hy[i, j, k] + hy[i, j, k - 1])
+                    curl_e = pdy3[j] * pdz3[k] * ex[i, j, k] \
+                                + pdy2[j] * pdz2[k] * (0.5 * (hz[i, j, k] - hz[i, j - 1, k] - hy[i, j, k] + hy[i, j, k - 1]) + pdx1[i] * iex[i, j, k])
+                    idx = media[i,j,k]
+                    ex[i, j, k]  = cex[idx] * (curl_e - ix[i, j, k])
+                    ix[i, j, k]  = ix[i, j, k] + cexl[idx] * ex[i, j, k]
+        return ex,ix,iex
+
+
+    @staticmethod
+    @njit(parallel=True)
+    def calculate_ey_field_pml(ey,hx,hz,iy,cey,ceyl,media,iey,pdx2,pdx3,pdy1,pdz2,pdz3):
+        x,y,z = ey.shape
+        for i in prange(1, x):
+            for j in prange(1, y):
+                for k in prange(1, z):
+                    iey[i, j, k] = iey[i, j, k] + (hx[i, j, k] - hx[i, j, k - 1] - hz[i, j, k] + hz[i - 1, j, k])
+                    curl_e = pdx3[i] * pdz3[k] * ey[i, j, k] \
+                        + pdx2[i] * pdz2[k] * (0.5 * (hx[i, j, k] - hx[i, j, k - 1] - hz[i, j, k] + hz[i - 1, j, k]) + pdy1[j] * iey[i, j, k])
+                    idx = media[i,j,k]
+                    ey[i, j, k] = cey[idx] * (curl_e - iy[i, j, k])
+                    iy[i, j, k] = iy[i, j, k] + ceyl[idx] * ey[i, j, k]
+        return ey, iy, iey
+
+
+    @staticmethod
+    @njit(parallel=True)
+    def calculate_ez_field_pml(ez,hx,hy,iz,cez,cezl,media,iez,pdx2,pdx3,pdy2,pdy3,pdz1):
+        x,y,z = ez.shape
+        for i in prange(1, x):
+            for j in prange(1, y):
+                for k in prange(1, z):
+                    iez[i, j, k] = iez[i, j, k] + (hy[i, j, k] - hy[i - 1, j, k] - hx[i, j, k] + hx[i, j - 1, k])
+                    curl_e = pdx3[i] * pdy3[j] * ez[i, j, k] \
+                        + pdx2[i] * pdy2[j] * (0.5 * (hy[i, j, k] - hy[i - 1, j, k] - hx[i, j, k] + hx[i, j - 1, k]) + pdz1[k] * iez[i, j, k])
+                    idx = media[i,j,k]
+                    ez[i, j, k] = cez[idx] * (curl_e - iz[i, j, k])
+                    iz[i, j, k] = iz[i, j, k] + cezl[idx] * ez[i, j, k]
+        return ez, iz, iez
 
 
     @staticmethod
@@ -208,25 +188,19 @@ class FDTD3d(Grid):
         return hz, ihz
 
 
-    def update_d_fields(self):
-
+    def update_e_fields(self):
         if self.boundaries == 'None':
-            self.dx = self.calculate_dx_field(self.dx,self.hy,self.hz)
-            self.dy = self.calculate_dy_field(self.dy,self.hx,self.hz)
-            self.dz = self.calculate_dz_field(self.dz,self.hx,self.hy)
+            self.ex,self.ix = self.calculate_ex_field(self.ex,self.hy,self.hz,self.ix,self.cex,self.cexl,self.media)
+            self.ey,self.iy = self.calculate_ey_field(self.ey,self.hx,self.hz,self.iy,self.cey,self.ceyl,self.media)
+            self.ez,self.iz = self.calculate_ez_field(self.ez,self.hx,self.hy,self.iz,self.cez,self.cezl,self.media)
 
         elif self.boundaries == 'PML':
-            self.dx,self.boundary.idx = self.calculate_dx_field_pml(self.dx,self.hy,self.hz,self.boundary.idx,self.boundary.pdx1,self.boundary.pdy2,self.boundary.pdy3,self.boundary.pdz2,self.boundary.pdz3)
-            self.dy,self.boundary.idy = self.calculate_dy_field_pml(self.dy,self.hx,self.hz,self.boundary.idy,self.boundary.pdx2,self.boundary.pdx3,self.boundary.pdy1,self.boundary.pdz2,self.boundary.pdz3)
-            self.dz,self.boundary.idz = self.calculate_dz_field_pml(self.dz,self.hx,self.hy,self.boundary.idz,self.boundary.pdx2,self.boundary.pdx3,self.boundary.pdy2,self.boundary.pdy3,self.boundary.pdz1)
+            self.ex,self.ix,self.boundary.iex = self.calculate_ex_field_pml(self.ex,self.hy,self.hz,self.ix,self.cex,self.cexl,self.media,self.boundary.iex,self.boundary.pdx1,self.boundary.pdy2,self.boundary.pdy3,self.boundary.pdz2,self.boundary.pdz3)
+            self.ey,self.iy,self.boundary.iey = self.calculate_ey_field_pml(self.ey,self.hx,self.hz,self.iy,self.cey,self.ceyl,self.media,self.boundary.iey,self.boundary.pdx2,self.boundary.pdx3,self.boundary.pdy1,self.boundary.pdz2,self.boundary.pdz3)
+            self.ez,self.iz,self.boundary.iez = self.calculate_ez_field_pml(self.ez,self.hx,self.hy,self.iz,self.cez,self.cezl,self.media,self.boundary.iez,self.boundary.pdx2,self.boundary.pdx3,self.boundary.pdy2,self.boundary.pdy3,self.boundary.pdz1)
+
         else:
             print('err')
-
-    def update_e_fields(self):
-
-        self.ex,self.ix = self.calculate_ex_field(self.ex,self.ix,self.dx,self.cex,self.cexl,self.media)
-        self.ey,self.iy = self.calculate_ey_field(self.ey,self.iy,self.dy,self.cey,self.ceyl,self.media)
-        self.ez,self.iz = self.calculate_ez_field(self.ez,self.iz,self.dz,self.cez,self.cezl,self.media)
 
 
     def update_h_fields(self):
@@ -245,14 +219,13 @@ class FDTD3d(Grid):
 
 
     def run(self):
-        self.update_d_fields()
-        self.dz[self.nxc,self.nyc,self.nzc] = self.source.update_source()
+        self.ez[self.nxc,self.nyc,self.nzc] = self.source.update_source()
         self.update_e_fields()
-        self.dz[self.nxc,self.nyc,self.nzc] = self.source.update_source()
+        self.ez[self.nxc,self.nyc,self.nzc] = self.source.update_source()
         self.update_h_fields()
 
 
-    def run_animation(self,nsteps):
+    def run_animation(self,nsteps): # -> matplotlib.animation.ArtistAnimation
         import matplotlib.pyplot as plt
         import matplotlib.animation as animation
         import matplotlib.ticker as ticker
