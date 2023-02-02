@@ -21,7 +21,7 @@ pip install -r requirements.txt
 To use the FDTD module, simply import it in your Python script as follows:
 
 ```
-import FDTD
+import fdtd
 ```
 
 For examples of how to use the FDTD module, please see the `examples` folder.

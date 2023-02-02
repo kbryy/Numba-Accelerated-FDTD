@@ -26,24 +26,15 @@ class FDTD1d(Grid):
 
     @staticmethod
     @njit(parallel=True)
-    def calculate_dx_field(dx,hy):
-        x, = dx.shape
-        for i in prange(1,x):
-            dx[i] = dx[i] + 0.5 * (hy[i - 1] - hy[i])
-
-        return dx
-
-
-    @staticmethod
-    @njit(parallel=True)
-    def calculate_ex_field(ex,ix,dx,cex,cexl,media):
+    def calculate_ex_field(ex,hy,ix,cex,cexl,media):
         x, = ex.shape
-        for i in prange(1, x):
-            idx =media[i]
-            ex[i] = cex[idx] * (dx[i] - ix[i])
-            ix[i] = ix[i] + cexl[idx] * ex[i]
+        for i in prange(1,x):
+            idx    = media[i]
+            curl_e = ex[i] + 0.5 * (hy[i - 1] - hy[i])
+            ex[i]  = cex[idx] * (curl_e - ix[i])
+            ix[i]  = ix[i] + cexl[idx] * ex[i]
 
-        return ex,ix
+        return ex, ix
 
 
     @staticmethod
@@ -56,12 +47,8 @@ class FDTD1d(Grid):
         return hy
 
 
-    def update_d_fields(self):
-        self.dx = self.calculate_dx_field(self.dx,self.hy)
-
-
     def update_e_fields(self):
-        self.ex,self.ix = self.calculate_ex_field(self.ex,self.ix,self.dx,self.cex,self.cexl,self.media)
+        self.ex,self.ix = self.calculate_ex_field(self.ex,self.hy,self.ix,self.cex,self.cexl,self.media)
 
 
     def update_h_fields(self):
@@ -69,10 +56,9 @@ class FDTD1d(Grid):
 
 
     def run(self):
-        self.update_d_fields()
-        self.dx[self.nxc] = self.source.update_source()
+        self.ex[self.nxc] = self.source.update_source()
         self.update_e_fields()
-        self.dx[self.nxc] = self.source.update_source()
+        self.ex[self.nxc] = self.source.update_source()
         self.update_h_fields()
 
     def run_animation(self,nsteps):
