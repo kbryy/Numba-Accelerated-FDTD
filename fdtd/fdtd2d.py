@@ -27,38 +27,30 @@ class FDTD2d(Grid):
 
     @staticmethod
     @njit(parallel=True)
-    def calculate_dz_field(dz,hx,hy):
-        x,y = dz.shape
-        for i in prange(1,x):
-            for j in prange(1,y):
-                dz[i, j] = dz[i, j] + 0.5 * (hy[i,j] - hy[i-1,j] - hx[i,j] + hx[i,j-1])
-
-        return dz
-
-
-    @staticmethod
-    @njit(parallel=True)
-    def calculate_dz_field_pml(dz,hx,hy,pdx2,pdx3,pdy2,pdy3):
-        x,y = dz.shape
-        for i in prange(1,x):
-            for j in prange(1,y):
-                dz[i, j] = pdx3[i] * pdy3[j] * dz[i, j] \
-                    + pdx2[i] * pdy2[j] * 0.5 * (hy[i, j] - hy[i - 1, j] - hx[i, j] + hx[i, j - 1])
-
-        return dz
-
-
-    @staticmethod
-    @njit(parallel=True)
-    def calculate_ez_field(ez,iz,dz,cez,cezl,media):
+    def calculate_ez_field(ez,hx,hy,iz,cez,cezl,media):
         x,y = ez.shape
-        for i in prange(1, x):
-            for j in prange(1, y):
-                idx = media[i,j]
-                ez[i,j] = cez[idx] * (dz[i,j] - iz[i,j])
+        for i in prange(1,x):
+            for j in prange(1,y):
+                curl_e  = ez[i, j] + 0.5 * (hy[i,j] - hy[i-1,j] - hx[i,j] + hx[i,j-1])
+                idx     = media[i,j]
+                ez[i,j] = cez[idx] * (curl_e - iz[i,j])
                 iz[i,j] = iz[i,j] + cezl[idx] * ez[i,j]
 
-        return ez,iz
+        return ez, iz
+
+
+    @staticmethod
+    @njit(parallel=True)
+    def calculate_ez_field_pml(ez,hx,hy,iz,cez,cezl,media,pdx2,pdx3,pdy2,pdy3):
+        x,y = ez.shape
+        for i in prange(1,x):
+            for j in prange(1,y):
+                curl_e  = pdx3[i] * pdy3[j] * ez[i, j] \
+                            + pdx2[i] * pdy2[j] * 0.5 * (hy[i, j] - hy[i - 1, j] - hx[i, j] + hx[i, j - 1])
+                idx     = media[i,j]
+                ez[i,j] = cez[idx] * (curl_e - iz[i,j])
+                iz[i,j] = iz[i,j] + cezl[idx] * ez[i,j]
+        return ez, iz
 
 
     @staticmethod
@@ -107,22 +99,15 @@ class FDTD2d(Grid):
         return hy,ihy
 
 
-    def update_d_fields(self):
-
+    def update_e_fields(self):
         if self.boundaries == 'None':
-            self.dz = self.calculate_dz_field(self.dz,self.hx,self.hy)
+            self.ez,self.iz = self.calculate_ez_field(self.ez,self.hx,self.hy,self.iz,self.cez,self.cezl,self.media)
 
         elif self.boundaries == 'PML':
-            self.dz = self.calculate_dz_field_pml(self.dz,self.hx,self.hy,self.boundary.pdx2,self.boundary.pdx3,self.boundary.pdy2,self.boundary.pdy3)
-
-
-    def update_e_fields(self):
-
-        self.ez,self.iz = self.calculate_ez_field(self.ez,self.iz,self.dz,self.cez,self.cezl,self.media)
+            self.ez,self.iz = self.calculate_ez_field_pml(self.ez,self.hx,self.hy,self.iz,self.cez,self.cezl,self.media,self.boundary.pdx2,self.boundary.pdx3,self.boundary.pdy2,self.boundary.pdy3)
 
 
     def update_h_fields(self):
-
         if self.boundaries == 'None':
             self.hx = self.calculate_hx_field(self.hx,self.ez)
             self.hy = self.calculate_hy_field(self.hy,self.ez)
@@ -133,10 +118,9 @@ class FDTD2d(Grid):
 
 
     def run(self):
-        self.update_d_fields()
-        self.dz[self.nxc,self.nyc] = self.source.update_source()
+        self.ez[self.nxc,self.nyc] = self.source.update_source()
         self.update_e_fields()
-        self.dz[self.nxc,self.nyc] = self.source.update_source()
+        self.ez[self.nxc,self.nyc] = self.source.update_source()
         self.update_h_fields()
 
 
