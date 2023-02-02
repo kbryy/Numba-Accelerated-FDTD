@@ -13,9 +13,9 @@ class PML:
 
         elif d == 3:
             self.nx,self.ny,self.nz = shape
-            self.idx = np.zeros((self.nx,self.ny,self.nz),dtype=self.DTYPE)
-            self.idy = np.zeros((self.nx,self.ny,self.nz),dtype=self.DTYPE)
-            self.idz = np.zeros((self.nx,self.ny,self.nz),dtype=self.DTYPE)
+            self.iex = np.zeros((self.nx,self.ny,self.nz),dtype=self.DTYPE)
+            self.iey = np.zeros((self.nx,self.ny,self.nz),dtype=self.DTYPE)
+            self.iez = np.zeros((self.nx,self.ny,self.nz),dtype=self.DTYPE)
             self.ihx = np.zeros((self.nx,self.ny,self.nz),dtype=self.DTYPE)
             self.ihy = np.zeros((self.nx,self.ny,self.nz),dtype=self.DTYPE)
             self.ihz = np.zeros((self.nx,self.ny,self.nz),dtype=self.DTYPE)
