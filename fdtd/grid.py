@@ -1,5 +1,6 @@
 import numpy as np
 from numba import njit
+
 from . import constants as const
 
 class Grid:
@@ -77,6 +78,7 @@ class Grid:
             self.cex[i]  = 1 / (epsr + (sigma * dt / epsz))
             self.cexl[i] = sigma * dt / epsz
 
+
     def calculate_media_coefficients_2d(self):
         dt    = self.dt
         epsz  = const.EPS0
@@ -100,9 +102,8 @@ class Grid:
             self.ceyl[i] = sigma * dt / epsz
             self.cezl[i] = sigma * dt / epsz
 
+
     @staticmethod
     @njit
     def calculate_amp(x,y,z):
         return np.sqrt((x**2 + y**2 + z**2))
-
-

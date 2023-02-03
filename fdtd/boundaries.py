@@ -162,5 +162,3 @@ class PML:
         self.phz1 = phz1
         self.phz2 = phz2
         self.phz3 = phz3
-
-

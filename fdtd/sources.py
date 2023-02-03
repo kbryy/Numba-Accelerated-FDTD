@@ -1,6 +1,6 @@
-from math import sin,pi
+from math import pi
+from numpy import sin
 from numba import njit
-
 
 class PointSource:
     def __init__(self,f,dt):
@@ -12,6 +12,7 @@ class PointSource:
     def update_source(self):
         result  = self.calculate_sin_signal_at_time(self.f,self.t)
         self.t += self.dt / 2.0
+
         return result
 
 

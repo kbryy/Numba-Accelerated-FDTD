@@ -1,9 +1,9 @@
+from numpy import float32
+from numba import njit,prange
+
 from .grid import Grid
 from .boundaries import PML
 from .sources import PointSource
-
-from numba import njit,prange
-from numpy import float32
 
 # TM
 class FDTD3d(Grid):
@@ -25,18 +25,18 @@ class FDTD3d(Grid):
             self.source = PointSource(self.f,self.dt)
 
 
-
     @staticmethod
     @njit(parallel=True)
     def calculate_ex_field(ex,hy,hz,ix,cex,cexl,media):
         x,y,z = ex.shape
-        for i in prange(1, x):
+        for i in prange(0, x):
             for j in prange(1, y):
                 for k in prange(1, z):
                     curl_e = ex[i, j, k] + 0.5 * (hz[i, j, k] - hz[i, j - 1, k] - hy[i, j, k] + hy[i, j, k - 1])
                     idx = media[i,j,k]
                     ex[i, j, k] = cex[idx] * (curl_e - ix[i, j, k])
                     ix[i, j, k] = ix[i, j, k] + cexl[idx] * ex[i, j, k]
+
         return ex, ix
 
 
@@ -45,12 +45,13 @@ class FDTD3d(Grid):
     def calculate_ey_field(ey,hx,hz,iy,cey,ceyl,media):
         x,y,z = ey.shape
         for i in prange(1, x):
-            for j in prange(1, y):
+            for j in prange(0, y):
                 for k in prange(1, z):
-                    curl_e      = ey[i, j, k] + 0.5 * (hx[i, j, k] - hx[i, j, k - 1] - hz[i, j, k] + hz[i - 1, j, k])
-                    idx         = media[i,j,k]
+                    curl_e = ey[i, j, k] + 0.5 * (hx[i, j, k] - hx[i, j, k - 1] - hz[i, j, k] + hz[i - 1, j, k])
+                    idx = media[i,j,k]
                     ey[i, j, k] = cey[idx] * (curl_e - iy[i, j, k])
                     iy[i, j, k] = iy[i, j, k] + ceyl[idx] * ey[i, j, k]
+
         return ey, iy
 
 
@@ -60,11 +61,12 @@ class FDTD3d(Grid):
         x,y,z = ez.shape
         for i in prange(1, x):
             for j in prange(1, y):
-                for k in prange(1, z):
+                for k in prange(0, z):
                     curl_e = ez[i, j, k] + 0.5 * (hy[i, j, k] - hy[i - 1, j, k] - hx[i, j, k] + hx[i, j - 1, k])
                     idx = media[i,j,k]
                     ez[i, j, k] = cez[idx] * (curl_e - iz[i, j, k])
                     iz[i, j, k] = iz[i, j, k] + cezl[idx] * ez[i, j, k]
+
         return ez, iz
 
 
@@ -72,7 +74,7 @@ class FDTD3d(Grid):
     @njit(parallel=True)
     def calculate_ex_field_pml(ex,hy,hz,ix,cex,cexl,media,iex,pdx1,pdy2,pdy3,pdz2,pdz3):
         x,y,z = ex.shape
-        for i in prange(1, x):
+        for i in prange(0, x):
             for j in prange(1, y):
                 for k in prange(1, z):
                     iex[i, j, k] = iex[i, j, k] + (hz[i, j, k] - hz[i, j - 1, k] - hy[i, j, k] + hy[i, j, k - 1])
@@ -81,6 +83,7 @@ class FDTD3d(Grid):
                     idx = media[i,j,k]
                     ex[i, j, k]  = cex[idx] * (curl_e - ix[i, j, k])
                     ix[i, j, k]  = ix[i, j, k] + cexl[idx] * ex[i, j, k]
+
         return ex,ix,iex
 
 
@@ -89,7 +92,7 @@ class FDTD3d(Grid):
     def calculate_ey_field_pml(ey,hx,hz,iy,cey,ceyl,media,iey,pdx2,pdx3,pdy1,pdz2,pdz3):
         x,y,z = ey.shape
         for i in prange(1, x):
-            for j in prange(1, y):
+            for j in prange(0, y):
                 for k in prange(1, z):
                     iey[i, j, k] = iey[i, j, k] + (hx[i, j, k] - hx[i, j, k - 1] - hz[i, j, k] + hz[i - 1, j, k])
                     curl_e = pdx3[i] * pdz3[k] * ey[i, j, k] \
@@ -97,6 +100,7 @@ class FDTD3d(Grid):
                     idx = media[i,j,k]
                     ey[i, j, k] = cey[idx] * (curl_e - iy[i, j, k])
                     iy[i, j, k] = iy[i, j, k] + ceyl[idx] * ey[i, j, k]
+
         return ey, iy, iey
 
 
@@ -106,13 +110,14 @@ class FDTD3d(Grid):
         x,y,z = ez.shape
         for i in prange(1, x):
             for j in prange(1, y):
-                for k in prange(1, z):
+                for k in prange(0, z):
                     iez[i, j, k] = iez[i, j, k] + (hy[i, j, k] - hy[i - 1, j, k] - hx[i, j, k] + hx[i, j - 1, k])
                     curl_e = pdx3[i] * pdy3[j] * ez[i, j, k] \
                         + pdx2[i] * pdy2[j] * (0.5 * (hy[i, j, k] - hy[i - 1, j, k] - hx[i, j, k] + hx[i, j - 1, k]) + pdz1[k] * iez[i, j, k])
                     idx = media[i,j,k]
                     ez[i, j, k] = cez[idx] * (curl_e - iz[i, j, k])
                     iz[i, j, k] = iz[i, j, k] + cezl[idx] * ez[i, j, k]
+
         return ez, iz, iez
 
 
@@ -124,6 +129,7 @@ class FDTD3d(Grid):
             for j in prange(0, y - 1):
                 for k in prange(0, z - 1):
                     hx[i, j, k] = hx[i, j, k] + 0.5 * (ey[i, j, k + 1] - ey[i, j, k] - ez[i, j + 1, k] + ez[i, j, k])
+
         return hx
 
 
@@ -135,6 +141,7 @@ class FDTD3d(Grid):
             for j in prange(0, y):
                 for k in prange(0, z-1):
                     hy[i, j, k] = hy[i, j, k] + 0.5 * (ez[i + 1, j, k] - ez[i, j, k] - ex[i, j, k + 1] + ex[i, j, k])
+
         return hy
 
 
@@ -146,6 +153,7 @@ class FDTD3d(Grid):
             for j in prange(0, y-1):
                 for k in prange(0, z):
                     hz[i, j, k] = hz[i, j, k] + 0.5 * (ex[i, j + 1, k] - ex[i, j, k] - ey[i + 1, j, k] + ey[i, j, k])
+
         return hz
 
 
@@ -159,6 +167,7 @@ class FDTD3d(Grid):
                     ihx[i, j, k] = ihx[i, j, k] + (ey[i, j, k + 1] - ey[i, j, k] - ez[i, j + 1, k] + ez[i, j, k])
                     hx[i, j, k] = phy3[j] * phz3[k] * hx[i, j, k] \
                         + phy2[j] * phz2[k] * 0.5 * ((ey[i, j, k + 1] - ey[i, j, k] - ez[i, j + 1, k] + ez[i, j, k]) + phx1[i] * ihx[i, j, k])
+
         return hx, ihx
 
 
@@ -172,6 +181,7 @@ class FDTD3d(Grid):
                     ihy[i, j, k] = ihy[i, j, k] + (ez[i + 1, j, k] - ez[i, j, k] - ex[i, j, k + 1] + ex[i, j, k])
                     hy[i, j, k] = phx3[i] * phz3[k] * hy[i, j, k] \
                         + phx2[i] * phz2[k] * 0.5 * ((ez[i + 1, j, k] - ez[i, j, k] - ex[i, j, k + 1] + ex[i, j, k]) + phy1[j] * ihy[i, j, k])
+
         return hy, ihy
 
 
@@ -185,6 +195,7 @@ class FDTD3d(Grid):
                     ihz[i, j, k] = ihz[i, j, k] + (ex[i, j + 1, k] - ex[i, j, k] - ey[i + 1, j, k] + ey[i, j, k])
                     hz[i, j, k] = phx3[i] * phy3[j] * hz[i, j, k] \
                         + phx2[i] * phy2[j] * 0.5 * ((ex[i, j + 1, k] - ex[i, j, k] - ey[i + 1, j, k] + ey[i, j, k]) + phz1[k] * ihz[i, j, k])
+
         return hz, ihz
 
 
@@ -253,4 +264,3 @@ class FDTD3d(Grid):
         ani = animation.ArtistAnimation(fig, ims, interval=50, blit=False)
 
         return ani
-

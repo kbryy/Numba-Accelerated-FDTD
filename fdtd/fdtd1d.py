@@ -1,9 +1,9 @@
+from numpy import float32
+from numba import njit,prange
+
 from .grid import Grid
 from .boundaries import PML
 from .sources import PointSource
-
-from numba import njit,prange
-from numpy import float32
 
 class FDTD1d(Grid):
     def __init__(self,media,constants,ddx,f,DTYPE=float32):
@@ -29,10 +29,10 @@ class FDTD1d(Grid):
     def calculate_ex_field(ex,hy,ix,cex,cexl,media):
         x, = ex.shape
         for i in prange(1,x):
-            idx    = media[i]
+            idx = media[i]
             curl_e = ex[i] + 0.5 * (hy[i - 1] - hy[i])
-            ex[i]  = cex[idx] * (curl_e - ix[i])
-            ix[i]  = ix[i] + cexl[idx] * ex[i]
+            ex[i] = cex[idx] * (curl_e - ix[i])
+            ix[i] = ix[i] + cexl[idx] * ex[i]
 
         return ex, ix
 
@@ -60,6 +60,7 @@ class FDTD1d(Grid):
         self.update_e_fields()
         self.ex[self.nxc] = self.source.update_source()
         self.update_h_fields()
+
 
     def run_animation(self,nsteps):
         import matplotlib.pyplot as plt

@@ -1,9 +1,9 @@
+from numpy import float32
+from numba import njit,prange
+
 from .grid import Grid
 from .boundaries import PML
 from .sources import PointSource
-
-from numba import njit,prange
-from numpy import float32
 
 # TM
 class FDTD2d(Grid):
@@ -50,6 +50,7 @@ class FDTD2d(Grid):
                 idx     = media[i,j]
                 ez[i,j] = cez[idx] * (curl_e - iz[i,j])
                 iz[i,j] = iz[i,j] + cezl[idx] * ez[i,j]
+
         return ez, iz
 
 
@@ -149,4 +150,3 @@ class FDTD2d(Grid):
         ani = animation.ArtistAnimation(fig, ims, interval=50, blit=False)
 
         return ani
-
